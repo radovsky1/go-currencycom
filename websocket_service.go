@@ -2,7 +2,6 @@ package go_currencycom
 
 import (
 	"errors"
-	"fmt"
 	"time"
 )
 
@@ -58,7 +57,6 @@ func wsMarketDataServe(endpoint string, symbols []string, handler WsMarketDataHa
 			return
 		}
 		j = j.Get("payload")
-		fmt.Println("j", j)
 		event := new(WsMarketDataEvent)
 		event.SymbolName = j.Get("symbolName").MustString()
 		event.Timestamp = j.Get("timestamp").MustInt64()
@@ -70,5 +68,57 @@ func wsMarketDataServe(endpoint string, symbols []string, handler WsMarketDataHa
 	}
 	doneC, stopC, err = wsServe(config, requests, wsHandler, errHandler)
 	requests <- *newWsRequest("marketData.subscribe", CorrelationID, payload{"symbols": symbols})
+	return doneC, stopC, err
+}
+
+type WsOHLCMarketDataEvent struct {
+	Symbol    string  `json:"symbol"`
+	Interval  string  `json:"interval"`
+	Type      string  `json:"type"`
+	Open      float64 `json:"o"`
+	High      float64 `json:"h"`
+	Low       float64 `json:"l"`
+	Close     float64 `json:"c"`
+	Timestamp int64   `json:"t"`
+}
+
+type WsOHLCMarketDataHandler func(event *WsOHLCMarketDataEvent)
+
+func WsOHLCMarketDataServe(symbols []string, interval string, handler WsOHLCMarketDataHandler, errHandler ErrHandler) (doneC, stopC chan struct{}, err error) {
+	return wsOHLCMarketDataServe(getWsEndpoint(), symbols, interval, handler, errHandler)
+}
+
+func wsOHLCMarketDataServe(endpoint string, symbols []string, interval string, handler WsOHLCMarketDataHandler, errHandler ErrHandler) (doneC, stopC chan struct{}, err error) {
+	config := newWsConfig(endpoint)
+	requests := make(chan WsRequest)
+	wsHandler := func(message []byte) {
+		j, err := newJSON(message)
+		if err != nil {
+			errHandler(err)
+			return
+		}
+		status, err := j.Get("status").String()
+		if err != nil {
+			errHandler(err)
+			return
+		}
+		if status != "OK" {
+			errHandler(errors.New(status))
+			return
+		}
+		j = j.Get("payload")
+		event := new(WsOHLCMarketDataEvent)
+		event.Symbol = j.Get("symbol").MustString()
+		event.Type = j.Get("type").MustString()
+		event.Interval = j.Get("interval").MustString()
+		event.Timestamp = j.Get("t").MustInt64()
+		event.Open = j.Get("o").MustFloat64()
+		event.High = j.Get("h").MustFloat64()
+		event.Low = j.Get("l").MustFloat64()
+		event.Close = j.Get("c").MustFloat64()
+		handler(event)
+	}
+	doneC, stopC, err = wsServe(config, requests, wsHandler, errHandler)
+	requests <- *newWsRequest("OHLCMarketData.subscribe", CorrelationID, payload{"symbols": symbols, "interval": interval})
 	return doneC, stopC, err
 }
