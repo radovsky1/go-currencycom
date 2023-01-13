@@ -122,3 +122,55 @@ func wsOHLCMarketDataServe(endpoint string, symbols []string, interval string, h
 	requests <- *newWsRequest("OHLCMarketData.subscribe", CorrelationID, payload{"symbols": symbols, "interval": interval})
 	return doneC, stopC, err
 }
+
+type WsTradesEvent struct {
+	Price         float64 `json:"price"`
+	Size          float64 `json:"size"`
+	ID            int64   `json:"id"`
+	Timestamp     int64   `json:"ts"`
+	Symbol        string  `json:"symbol"`
+	OrderID       string  `json:"orderId"`
+	ClientOrderID string  `json:"clientOrderId"`
+	Buyer         bool    `json:"buyer"`
+}
+
+type WsTradesHandler func(event *WsTradesEvent)
+
+func WsTradesServe(symbols []string, handler WsTradesHandler, errHandler ErrHandler) (doneC, stopC chan struct{}, err error) {
+	return wsTradesServe(getWsEndpoint(), symbols, handler, errHandler)
+}
+
+func wsTradesServe(endpoint string, symbols []string, handler WsTradesHandler, errHandler ErrHandler) (doneC, stopC chan struct{}, err error) {
+	config := newWsConfig(endpoint)
+	requests := make(chan WsRequest)
+	wsHandler := func(message []byte) {
+		j, err := newJSON(message)
+		if err != nil {
+			errHandler(err)
+			return
+		}
+		status, err := j.Get("status").String()
+		if err != nil {
+			errHandler(err)
+			return
+		}
+		if status != "OK" {
+			errHandler(errors.New(status))
+			return
+		}
+		j = j.Get("payload")
+		event := new(WsTradesEvent)
+		event.Symbol = j.Get("symbol").MustString()
+		event.ID = j.Get("id").MustInt64()
+		event.Timestamp = j.Get("ts").MustInt64()
+		event.Price = j.Get("price").MustFloat64()
+		event.Size = j.Get("size").MustFloat64()
+		event.OrderID = j.Get("orderId").MustString()
+		event.ClientOrderID = j.Get("clientOrderId").MustString()
+		event.Buyer = j.Get("buyer").MustBool()
+		handler(event)
+	}
+	doneC, stopC, err = wsServe(config, requests, wsHandler, errHandler)
+	requests <- *newWsRequest("trades.subscribe", CorrelationID, payload{"symbols": symbols})
+	return doneC, stopC, err
+}
