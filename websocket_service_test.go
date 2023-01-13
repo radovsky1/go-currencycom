@@ -147,3 +147,53 @@ func (s *websocketServiceTestSuite) assertWsOHLCMarketDataEventEqual(e, a *WsOHL
 	r.Equal(e.Open, a.Open, "Open")
 	r.Equal(e.Close, a.Close, "Close")
 }
+
+func (s *websocketServiceTestSuite) TestWsTradesServe() {
+	data := []byte(`{
+		"status":"OK",
+		"destination":"internal.trade",
+		"payload":{
+			"price":11400.95,
+			"size":0.058,
+			"id":1616651347,
+			"ts":1596625079952,
+			"symbol":"BTC/USD",
+			"orderId":"00a02503-0079-54c4-0000-00004020316a",
+			"clientOrderId":"00a02503-0079-54c4-0000-482f00003a06",
+			"buyer":true
+		}}`)
+	fakeErrMsg := "fake error"
+	s.mockWsServe(data, errors.New(fakeErrMsg))
+	defer s.assertWsServe()
+
+	doneC, stopC, err := WsTradesServe([]string{"BTC/USD"}, func(event *WsTradesEvent) {
+		e := &WsTradesEvent{
+			Price:         11400.95,
+			Size:          0.058,
+			ID:            1616651347,
+			Timestamp:     1596625079952,
+			Symbol:        "BTC/USD",
+			OrderID:       "00a02503-0079-54c4-0000-00004020316a",
+			ClientOrderID: "00a02503-0079-54c4-0000-482f00003a06",
+			Buyer:         true,
+		}
+		s.assertWsTradeEventEqual(e, event)
+	}, func(err error) {
+		s.r().EqualError(err, fakeErrMsg)
+	})
+	s.r().NoError(err)
+	close(stopC)
+	<-doneC
+}
+
+func (s *websocketServiceTestSuite) assertWsTradeEventEqual(e, a *WsTradesEvent) {
+	r := s.r()
+	r.Equal(e.Price, a.Price, "Price")
+	r.Equal(e.Size, a.Size, "Size")
+	r.Equal(e.ID, a.ID, "ID")
+	r.Equal(e.Timestamp, a.Timestamp, "Timestamp")
+	r.Equal(e.Symbol, a.Symbol, "Symbol")
+	r.Equal(e.OrderID, a.OrderID, "OrderID")
+	r.Equal(e.ClientOrderID, a.ClientOrderID, "ClientOrderID")
+	r.Equal(e.Buyer, a.Buyer, "Buyer")
+}
