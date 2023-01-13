@@ -97,3 +97,53 @@ func (s *websocketServiceTestSuite) assertWsMarketDataEventEqual(e, a *WsMarketD
 	r.Equal(e.OfrQty, a.OfrQty, "OfrQty")
 	r.Equal(e.Timestamp, a.Timestamp, "Timestamp")
 }
+
+func (s *websocketServiceTestSuite) TestWsOHLCMarketDataServe() {
+	data := []byte(`{
+		"status":"OK",
+		"destination":"ohlc.event",
+		"payload":{
+			"interval":"1m",
+			"symbol":"BTC/USD_LEVERAGE",
+			"type":"classic",
+			"t":1673619780000,
+			"h":18940.3,
+			"l":18926.55,
+			"o":18938.2,
+			"c":18936.2}
+		}`)
+	fakeErrMsg := "fake error"
+	s.mockWsServe(data, errors.New(fakeErrMsg))
+	defer s.assertWsServe()
+
+	doneC, stopC, err := WsOHLCMarketDataServe([]string{"BTC/USD_LEVERAGE"}, "1m", func(event *WsOHLCMarketDataEvent) {
+		e := &WsOHLCMarketDataEvent{
+			Interval:  "1m",
+			Symbol:    "BTC/USD_LEVERAGE",
+			Type:      "classic",
+			Timestamp: 1673619780000,
+			High:      18940.3,
+			Low:       18926.55,
+			Open:      18938.2,
+			Close:     18936.2,
+		}
+		s.assertWsOHLCMarketDataEventEqual(e, event)
+	}, func(err error) {
+		s.r().EqualError(err, fakeErrMsg)
+	})
+	s.r().NoError(err)
+	close(stopC)
+	<-doneC
+}
+
+func (s *websocketServiceTestSuite) assertWsOHLCMarketDataEventEqual(e, a *WsOHLCMarketDataEvent) {
+	r := s.r()
+	r.Equal(e.Interval, a.Interval, "Interval")
+	r.Equal(e.Symbol, a.Symbol, "Symbol")
+	r.Equal(e.Type, a.Type, "Type")
+	r.Equal(e.Timestamp, a.Timestamp, "Timestamp")
+	r.Equal(e.High, a.High, "High")
+	r.Equal(e.Low, a.Low, "Low")
+	r.Equal(e.Open, a.Open, "Open")
+	r.Equal(e.Close, a.Close, "Close")
+}
