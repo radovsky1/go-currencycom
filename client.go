@@ -36,6 +36,9 @@ type OrderStatusType string
 // ExpireTimestampType define expire time of order
 type ExpireTimestampType string
 
+// CandlestickInterval define interval of candlestick
+type CandlestickInterval string
+
 const (
 	// BaseURL is the base url of currency.com api
 	BaseURL = "https://api-adapter.backend.currency.com/"
@@ -80,6 +83,15 @@ const (
 	timestampKey  = "timestamp"
 	signatureKey  = "signature"
 	recvWindowKey = "recvWindow"
+
+	CandlestickInterval1m  CandlestickInterval = "1m"
+	CandlestickInterval5m  CandlestickInterval = "5m"
+	CandlestickInterval15m CandlestickInterval = "15m"
+	CandlestickInterval30m CandlestickInterval = "30m"
+	CandlestickInterval1h  CandlestickInterval = "1h"
+	CandlestickInterval4h  CandlestickInterval = "4h"
+	CandlestickInterval1d  CandlestickInterval = "1d"
+	CandlestickInterval1w  CandlestickInterval = "1w"
 )
 
 func FormatTimestamp(t time.Time) int64 {
