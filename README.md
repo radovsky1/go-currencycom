@@ -26,7 +26,7 @@ import (
 
 #### Setup
 
-Init client for API services. Get APIKey/SecretKey from your binance account.
+Init client for API services. Get APIKey/SecretKey from your account.
 
 ```golang
 var (
