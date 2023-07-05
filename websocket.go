@@ -2,7 +2,6 @@ package go_currencycom
 
 import (
 	stdjson "encoding/json"
-	"fmt"
 	"github.com/gorilla/websocket"
 	"net/http"
 	"time"
@@ -88,7 +87,6 @@ var wsServe = func(config *WsConfig, requests chan WsRequest, handler WsHandler,
 						errHandler(err)
 						return
 					}
-					fmt.Println("msg ", string(msg))
 					err = c.WriteMessage(websocket.TextMessage, msg)
 					if err != nil {
 						errHandler(err)
@@ -102,7 +100,6 @@ var wsServe = func(config *WsConfig, requests chan WsRequest, handler WsHandler,
 
 		for {
 			_, message, err := c.ReadMessage()
-			//fmt.Println("message ", string(message))
 			if err != nil {
 				if !silent {
 					errHandler(err)

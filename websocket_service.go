@@ -11,8 +11,8 @@ const (
 )
 
 var (
-	WebsocketTimeout   = 60 * time.Second
-	WebsocketKeepAlive = false
+	WebsocketTimeout   = 30 * time.Second
+	WebsocketKeepAlive = true
 	CorrelationID      = -1
 )
 
@@ -84,11 +84,11 @@ type WsOHLCMarketDataEvent struct {
 
 type WsOHLCMarketDataHandler func(event *WsOHLCMarketDataEvent)
 
-func WsOHLCMarketDataServe(symbols []string, interval string, handler WsOHLCMarketDataHandler, errHandler ErrHandler) (doneC, stopC chan struct{}, err error) {
-	return wsOHLCMarketDataServe(getWsEndpoint(), symbols, interval, handler, errHandler)
+func WsOHLCMarketDataServe(symbols []string, intervals []string, handler WsOHLCMarketDataHandler, errHandler ErrHandler) (doneC, stopC chan struct{}, err error) {
+	return wsOHLCMarketDataServe(getWsEndpoint(), symbols, intervals, handler, errHandler)
 }
 
-func wsOHLCMarketDataServe(endpoint string, symbols []string, interval string, handler WsOHLCMarketDataHandler, errHandler ErrHandler) (doneC, stopC chan struct{}, err error) {
+func wsOHLCMarketDataServe(endpoint string, symbols []string, intervals []string, handler WsOHLCMarketDataHandler, errHandler ErrHandler) (doneC, stopC chan struct{}, err error) {
 	config := newWsConfig(endpoint)
 	requests := make(chan WsRequest)
 	wsHandler := func(message []byte) {
@@ -119,7 +119,7 @@ func wsOHLCMarketDataServe(endpoint string, symbols []string, interval string, h
 		handler(event)
 	}
 	doneC, stopC, err = wsServe(config, requests, wsHandler, errHandler)
-	requests <- *newWsRequest("OHLCMarketData.subscribe", CorrelationID, payload{"symbols": symbols, "interval": interval})
+	requests <- *newWsRequest("OHLCMarketData.subscribe", CorrelationID, payload{"symbols": symbols, "intervals": intervals})
 	return doneC, stopC, err
 }
 
