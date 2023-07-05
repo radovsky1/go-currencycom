@@ -116,7 +116,7 @@ func (s *websocketServiceTestSuite) TestWsOHLCMarketDataServe() {
 	s.mockWsServe(data, errors.New(fakeErrMsg))
 	defer s.assertWsServe()
 
-	doneC, stopC, err := WsOHLCMarketDataServe([]string{"BTC/USD_LEVERAGE"}, "1m", func(event *WsOHLCMarketDataEvent) {
+	doneC, stopC, err := WsOHLCMarketDataServe([]string{"BTC/USD_LEVERAGE"}, []string{"1m"}, func(event *WsOHLCMarketDataEvent) {
 		e := &WsOHLCMarketDataEvent{
 			Interval:  "1m",
 			Symbol:    "BTC/USD_LEVERAGE",
